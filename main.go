@@ -82,38 +82,7 @@ func main() {
 		log.Fatalf("Failed to initialize host key: %v", err)
 	}
 
-	sshConfig := &ssh.ServerConfig{
-		NoClientAuth: true,
-		NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
-			log.Printf(
-				"SSH auth accepted: user=%s remote=%s method=%s",
-				logField(conn.User()),
-				logField(conn.RemoteAddr().String()),
-				"none",
-			)
-			return &ssh.Permissions{}, nil
-		},
-		AuthLogCallback: func(conn ssh.ConnMetadata, method string, err error) {
-			if err != nil {
-				log.Printf(
-					"SSH auth rejected: user=%s remote=%s method=%s err=%v",
-					logField(conn.User()),
-					logField(conn.RemoteAddr().String()),
-					method,
-					err,
-				)
-				return
-			}
-
-			log.Printf(
-				"SSH auth attempt: user=%s remote=%s method=%s",
-				logField(conn.User()),
-				logField(conn.RemoteAddr().String()),
-				method,
-			)
-		},
-	}
-	sshConfig.AddHostKey(serverKey)
+	sshConfig := newSSHServerConfig(serverKey)
 
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(appConfig.Server.Port))
 	listener, err := net.Listen("tcp", addr)
@@ -156,6 +125,49 @@ func main() {
 			_ = netConn.Close()
 		}
 	}
+}
+
+// newSSHServerConfig accepts the common SSH auth methods without validating credentials.
+func newSSHServerConfig(serverKey ssh.Signer) *ssh.ServerConfig {
+	sshConfig := &ssh.ServerConfig{
+		NoClientAuth: true,
+		NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
+			return &ssh.Permissions{}, nil
+		},
+		PasswordCallback: func(conn ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
+			return &ssh.Permissions{}, nil
+		},
+		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			return &ssh.Permissions{}, nil
+		},
+		KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+			return &ssh.Permissions{}, nil
+		},
+		AuthLogCallback: logSSHAuth,
+	}
+	sshConfig.AddHostKey(serverKey)
+
+	return sshConfig
+}
+
+func logSSHAuth(conn ssh.ConnMetadata, method string, err error) {
+	if err != nil {
+		log.Printf(
+			"SSH auth rejected: user=%s remote=%s method=%s err=%v",
+			logField(conn.User()),
+			logField(conn.RemoteAddr().String()),
+			method,
+			err,
+		)
+		return
+	}
+
+	log.Printf(
+		"SSH auth accepted: user=%s remote=%s method=%s",
+		logField(conn.User()),
+		logField(conn.RemoteAddr().String()),
+		method,
+	)
 }
 
 // handleConnection performs the SSH handshake and serves the first session channel on the connection.
