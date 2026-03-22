@@ -4,6 +4,7 @@ A tiny SSH server that shows off your CV or profile in the terminal. Connect via
 
 ## Demo
 
+![demo](demo.gif)
 
 ## What It Does
 
