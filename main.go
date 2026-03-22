@@ -44,6 +44,8 @@ const (
 	infoPathEnv = "SSH_CV_INFO_PATH"
 	// hostKeyPathEnv overrides the path to the persisted SSH host key.
 	hostKeyPathEnv = "SSH_CV_HOST_KEY_PATH"
+	// sshServerVersion is the identification string announced during the SSH handshake.
+	sshServerVersion = "SSH-2.0-Dmitry-fatscaler-virtual-platform"
 )
 
 // main loads runtime assets, starts the SSH listener, and serves sessions until shutdown.
@@ -130,7 +132,8 @@ func main() {
 // newSSHServerConfig accepts the common SSH auth methods without validating credentials.
 func newSSHServerConfig(serverKey ssh.Signer) *ssh.ServerConfig {
 	sshConfig := &ssh.ServerConfig{
-		NoClientAuth: true,
+		ServerVersion: sshServerVersion,
+		NoClientAuth:  true,
 		NoClientAuthCallback: func(conn ssh.ConnMetadata) (*ssh.Permissions, error) {
 			return &ssh.Permissions{}, nil
 		},
