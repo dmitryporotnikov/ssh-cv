@@ -11,6 +11,20 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func TestSSHServerAdvertisesConfiguredVersion(t *testing.T) {
+	t.Parallel()
+
+	serverConfig := newSSHServerConfig(newTestSigner(t))
+	got, err := fetchServerVersion(serverConfig)
+	if err != nil {
+		t.Fatalf("fetch server version: %v", err)
+	}
+
+	if got != sshServerVersion {
+		t.Fatalf("server version = %q, want %q", got, sshServerVersion)
+	}
+}
+
 func TestSSHServerAcceptsCommonAuthMethods(t *testing.T) {
 	t.Parallel()
 
@@ -147,6 +161,53 @@ func runTestHandshake(serverConfig *ssh.ServerConfig, clientConfig *ssh.ClientCo
 	}
 
 	return nil
+}
+
+func fetchServerVersion(serverConfig *ssh.ServerConfig) (string, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", fmt.Errorf("listen: %w", err)
+	}
+	defer listener.Close()
+
+	serverErrCh := make(chan error, 1)
+	go func() {
+		serverNetConn, err := listener.Accept()
+		if err != nil {
+			serverErrCh <- fmt.Errorf("accept: %w", err)
+			return
+		}
+		defer serverNetConn.Close()
+
+		conn, chans, reqs, err := ssh.NewServerConn(serverNetConn, serverConfig)
+		if err == nil {
+			go ssh.DiscardRequests(reqs)
+			go discardTestChannels(chans)
+			_ = conn.Close()
+		}
+		serverErrCh <- err
+	}()
+
+	clientNetConn, err := net.Dial("tcp", listener.Addr().String())
+	if err != nil {
+		return "", fmt.Errorf("dial: %w", err)
+	}
+	defer clientNetConn.Close()
+
+	clientConn, _, _, clientErr := ssh.NewClientConn(clientNetConn, listener.Addr().String(), &ssh.ClientConfig{
+		User:            "tester",
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	serverErr := <-serverErrCh
+	if clientErr != nil {
+		return "", fmt.Errorf("client: %w", clientErr)
+	}
+	defer clientConn.Close()
+	if serverErr != nil {
+		return "", fmt.Errorf("server: %w", serverErr)
+	}
+
+	return string(clientConn.ServerVersion()), nil
 }
 
 func discardTestChannels(chans <-chan ssh.NewChannel) {
