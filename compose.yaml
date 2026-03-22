@@ -1,0 +1,18 @@
+services:
+  ssh-cv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2222:2222"
+    environment:
+      SSH_CV_CONFIG_PATH: /runtime/config.yaml
+      SSH_CV_INFO_PATH: /runtime/info.md
+      SSH_CV_HOST_KEY_PATH: /data/ssh_host_key
+    volumes:
+      - ./runtime:/runtime:ro
+      - ssh-cv-data:/data
+    restart: unless-stopped
+
+volumes:
+  ssh-cv-data:

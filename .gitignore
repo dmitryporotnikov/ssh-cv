@@ -1,0 +1,23 @@
+# Binary
+ssh-cv
+
+# SSH host key - never commit this
+ssh_host_key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker data volumes
+.dockerignore
+
+# Claude Code
+.claude/

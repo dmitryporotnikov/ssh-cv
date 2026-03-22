@@ -1,0 +1,33 @@
+# SSH CV Viewer Configuration
+#
+# This directory is intended for the containerized deployment.
+# Edit this file on the host and restart or recreate the container if needed.
+
+server:
+  port: 2222
+  host_key_path: "ssh_host_key"
+  handshake_timeout_seconds: 10
+  session_timeout_seconds: 300
+  max_concurrent_connections: 100
+
+animations:
+  matrix_lines:
+    - "01001110 10101010 11110000 CONNECTION_DETECTED"
+    - "10110101 01010101 00110011 SYSTEM_V.3.7.1"
+    - "01101001 11010101 10101010 LINK_ESTABLISHED"
+    - "11010010 01010101 11110000 ENCRYPTION_BYPASSED"
+    - "00101010 11010101 00110011 ROOT_ACCESS_OBTAINED"
+
+  matrix_speed_ms: 80
+  scan_lines_count: 3
+  scan_speed_ms: 5
+  ascii_glitch: true
+  boot_delay_ms: 60
+  typewriter_speed_ms: 8
+  show_scan_lines: true
+
+messages:
+  access_granted: ">> ACCESS GRANTED <<"
+  press_to_exit: "[Press 'q' to disconnect]"
+  goodbye: "Connection terminated."
+  hack_message: "BYE!"
