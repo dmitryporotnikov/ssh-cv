@@ -1,12 +1,12 @@
 # ssh-cv
 
-A tiny SSH server that shows off your CV or profile in the terminal. Connect via SSH, see a brief hacker-style animation, read your `info.md` rendered nicely, and you're done. No shell, no commands—just a clean read-only display.
+A tiny SSH server that shows off your CV or profile in the terminal. Connect via SSH, see a brief hacker-style animation, read your `info.md` rendered nicely, and you're done. No shell, no commands - just a clean read-only display.
 
 ## Demo
 
 ![demo](demo.gif)
 
-## What It Does
+## What it does
 
 - Listens for SSH connections on a configurable port
 - Accepts anonymous access (no auth needed)
@@ -60,7 +60,7 @@ docker run -d \
   dmitryporotnikov/ssh-cv:latest
 ```
 
-### Custom Content On The Host
+### Custom content on the host
 
 Mount your own files instead of rebuilding:
 
@@ -125,7 +125,7 @@ docker restart ssh-cv
 
 Note: env vars point to paths inside the container, not host paths.
 
-### Build Locally
+### Build locally
 
 ```bash
 docker build -t ssh-cv .
@@ -172,7 +172,7 @@ messages:
   hack_message: "HACK THE PLANET!"
 ```
 
-## Markdown Rendering
+## Markdown rendering
 
 The renderer supports a lightweight subset of markdown:
 
@@ -183,7 +183,7 @@ The renderer supports a lightweight subset of markdown:
 - fenced code blocks with simple ANSI color themes for common languages
 - links rendered as underlined text
 
-## Security Model
+## Security model
 
 No authentication—this is by design. Anyone who can reach the port can see your profile. That's the point. It's a kiosk, not a server for sensitive stuff.
 
