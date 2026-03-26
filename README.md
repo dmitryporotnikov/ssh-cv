@@ -18,9 +18,9 @@ A tiny SSH server that shows off your CV or profile in the terminal. Connect via
 
 ## Files
 
-- `info.md` — your markdown profile, rendered for connected users
-- `config.yaml` — optional configuration
-- `ssh_host_key` — generated on first run (unless you point `server.host_key_path` elsewhere)
+- `info.md` - your markdown profile, rendered for connected users
+- `config.yaml` - optional configuration
+- `ssh_host_key` - generated on first run (unless you point `server.host_key_path` elsewhere)
 
 Override paths with environment variables:
 
