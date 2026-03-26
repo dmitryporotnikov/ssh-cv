@@ -1,6 +1,6 @@
 # ssh-cv
 
-A tiny SSH server that shows off your CV or profile in the terminal. Connect via SSH, see a brief hacker-style animation, read your `info.md` rendered nicely, and you're done. No shell, no commands - just a clean read-only display.
+A tiny SSH server that shows off your CV or profile in the terminal. Connect via SSH, see a brief hacker-style animation, read your `info.md` rendered nicely, and you're done. No shell, no commands—just a clean read-only display.
 
 ## Demo
 
