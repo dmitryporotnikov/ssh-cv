@@ -190,9 +190,19 @@ No authentication—this is by design. Anyone who can reach the port can see you
 Guardrails in place:
 
 - Persistent host key on disk
-- Handshake and session timeouts
+- Handshake and absolute post-authentication connection timeouts, including clients that never open a session
 - Connection cap
 - Rejects unsupported channels and session request types
 - Log sanitization for attacker-controlled SSH metadata
 
 If you expose this publicly, treat it as anonymous read-only infrastructure and put it behind normal network controls for an internet-facing service.
+
+### Container hardening
+
+The image runs as UID 100 / GID 101 with a static binary in a scratch image, without a shell or package manager. The bundled Compose configuration also uses a read-only root filesystem, drops all Linux capabilities, enables `no-new-privileges`, and limits memory, CPU, process count, file descriptors and log growth.
+
+The `/data` volume remains writable so a fresh deployment can generate its persistent SSH host key. Preserve this volume when updating the image. Once the key exists, you can optionally mount `/data` read-only; do not do this before initial key generation. Custom host-mounted key files must be readable by UID 100 / GID 101.
+
+`server.session_timeout_seconds` bounds the whole authenticated connection, starting immediately after authentication. Clients that never request a session channel are disconnected too, releasing their connection slot.
+
+These container settings do not restrict outbound network access. For public deployments, configure host firewall rules to block new outbound connections and access to the host, LAN and cloud metadata service from the container. Keep established response traffic working and allow inbound traffic only to the CV port. Firewall rules must match your deployment's bridge/network and survive Docker and host restarts.

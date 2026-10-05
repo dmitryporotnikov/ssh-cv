@@ -192,8 +192,13 @@ func handleConnection(netConn net.Conn, sshConfig *ssh.ServerConfig, cfg *Config
 	}
 	defer conn.Close()
 
-	if err := netConn.SetDeadline(time.Time{}); err != nil {
-		log.Printf("Failed to clear handshake deadline for remote=%s: %v", logField(conn.RemoteAddr().String()), err)
+	// Bound authenticated connections even when a client never opens a session.
+	// Previously the handshake deadline was cleared before waiting for channels,
+	// allowing anonymous idle clients to occupy every connection slot forever.
+	deadline := time.Now().Add(time.Duration(cfg.Server.SessionTimeoutSeconds) * time.Second)
+	if err := netConn.SetDeadline(deadline); err != nil {
+		log.Printf("Failed to set connection deadline for remote=%s: %v", logField(conn.RemoteAddr().String()), err)
+		return
 	}
 
 	log.Printf("SSH connection established: user=%s remote=%s", logField(conn.User()), logField(conn.RemoteAddr().String()))
@@ -220,13 +225,7 @@ func handleSession(newChan ssh.NewChannel, netConn net.Conn, cfg *Config) {
 	}
 	defer channel.Close()
 
-	if timeout := time.Duration(cfg.Server.SessionTimeoutSeconds) * time.Second; timeout > 0 {
-		if err := netConn.SetDeadline(time.Now().Add(timeout)); err != nil {
-			log.Printf("Failed to set session deadline for remote=%s: %v", logField(netConn.RemoteAddr().String()), err)
-			return
-		}
-		defer netConn.SetDeadline(time.Time{})
-	}
+	// Keep the absolute deadline established immediately after authentication.
 
 	go replyToSessionRequests(requests)
 
