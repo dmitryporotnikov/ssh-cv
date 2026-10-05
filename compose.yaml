@@ -13,6 +13,24 @@ services:
       - ./runtime:/runtime:ro
       - ssh-cv-data:/data
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 1024
+    logging:
+      driver: json-file
+      options:
+        max-size: "2m"
+        max-file: "5"
 
 volumes:
   ssh-cv-data:
