@@ -1,105 +1,44 @@
 # ssh-cv
 
-A tiny SSH server that shows off your CV or profile in the terminal. Connect via SSH, see a brief hacker-style animation, read your `info.md` rendered nicely, and you're done. No shell, no commands—just a clean read-only display.
+[![Go 1.26](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/r/dmitryporotnikov/ssh-cv)
 
-## Demo
+A tiny SSH server that shows your CV in the terminal. Someone runs `ssh -p 2222 any-user@your-host`, gets a short animation, reads your profile rendered with ANSI colors, and leaves. No shell, no commands, no SFTP, nowhere to go.
+
+Live demo: `ssh dmitry.porotnikov.com`
 
 ![demo](demo.gif)
 
 ## What it does
 
-- Listens for SSH connections on a configurable port
-- Accepts anonymous access (no auth needed)
-- Refuses anything that isn't a session channel
-- Renders `info.md` with ANSI colors and basic markdown
-- Keeps the same host key across restarts (generated on first run)
-- Has handshake and session timeouts to prevent abuse
-- Limits concurrent connections
+Listens on a configurable port and accepts anonymous sessions. Anything that isn't a session channel is refused. `info.md` is rendered with basic markdown and color, the host key survives restarts, and handshake timeouts, session timeouts and a connection cap keep scanners from piling up.
 
-## Files
+`info.md` is the content, `config.yaml` is optional, `ssh_host_key` gets generated on first run. Override the paths with `SSH_CV_CONFIG_PATH`, `SSH_CV_INFO_PATH` and `SSH_CV_HOST_KEY_PATH`.
 
-- `info.md` - your markdown profile, rendered for connected users
-- `config.yaml` - optional configuration
-- `ssh_host_key` - generated on first run (unless you point `server.host_key_path` elsewhere)
-
-Override paths with environment variables:
-
-- `SSH_CV_CONFIG_PATH`
-- `SSH_CV_INFO_PATH`
-- `SSH_CV_HOST_KEY_PATH`
-
-With Docker Compose, just edit the files in [runtime/](runtime/) on your host.
-
-## Running
+## Run it
 
 ```bash
 go run .
 ```
 
-Defaults to port `2222`. Connect with any SSH client:
+Port 2222 by default:
 
 ```bash
-ssh -p 2222 any-user@host
+ssh -p 2222 any-user@localhost
 ```
-
-It's presentation-only—no shell, no command execution, no SFTP, no port forwarding.
 
 ## Docker
 
-### Docker Hub
-
-Image: `dmitryporotnikov/ssh-cv:latest`
-
-Run with defaults baked into the image:
+The image is `dmitryporotnikov/ssh-cv:latest`.
 
 ```bash
-docker run -d \
-  --name ssh-cv \
-  -p 2222:2222 \
-  -v ssh-cv-data:/data \
-  dmitryporotnikov/ssh-cv:latest
+docker run -d --name ssh-cv -p 2222:2222 -v ssh-cv-data:/data dmitryporotnikov/ssh-cv:latest
 ```
 
-### Custom content on the host
-
-Mount your own files instead of rebuilding:
+To serve your own profile without rebuilding, put `config.yaml` and `info.md` in a directory on the host and mount it read-only:
 
 ```bash
 mkdir -p "$HOME/ssh-cv-runtime"
-```
-
-Create `config.yaml` in that directory:
-
-```yaml
-server:
-  port: 2222
-  handshake_timeout_seconds: 10
-  session_timeout_seconds: 300
-  max_concurrent_connections: 100
-
-messages:
-  access_granted: ">> ACCESS GRANTED <<"
-  press_to_exit: "[Press 'q' to disconnect]"
-  goodbye: "Connection terminated."
-  hack_message: "BYE!"
-```
-
-Create `info.md` in that directory:
-
-```md
-# Your Name
-
-## About
-Short intro here.
-
-## Links
-- GitHub: https://github.com/yourname
-- Website: https://example.com
-```
-
-Run the container against those host files:
-
-```bash
 docker run -d \
   --name ssh-cv \
   -p 2222:2222 \
@@ -111,98 +50,6 @@ docker run -d \
   dmitryporotnikov/ssh-cv:latest
 ```
 
-In this setup:
+Config keys and defaults are in [config.yaml](config.yaml); every setting is optional. Restart the container after editing the mounted files, since content is read at startup.
 
-- Your content lives on the host at `$HOME/ssh-cv-runtime`
-- The container reads it at `/runtime/config.yaml` and `/runtime/info.md`
-- The SSH host key stays in the Docker volume `ssh-cv-data`
-
-Restart the container after editing your files:
-
-```bash
-docker restart ssh-cv
-```
-
-Note: env vars point to paths inside the container, not host paths.
-
-### Build locally
-
-```bash
-docker build -t ssh-cv .
-```
-
-### Compose
-
-There's a [compose.yaml](compose.yaml) for local dev:
-
-```bash
-docker compose up --build
-```
-
-This mounts [runtime/](runtime/) read-only into the container. Edit your files on the host, restart to pick up changes.
-
-## Configuration
-
-Example `config.yaml`:
-
-```yaml
-server:
-  port: 2222
-  host_key_path: "ssh_host_key"
-  handshake_timeout_seconds: 10
-  session_timeout_seconds: 300
-  max_concurrent_connections: 100
-
-animations:
-  matrix_lines:
-    - "01001110 10101010 11110000 BINARY_INTRUSION_DETECTED"
-    - "10110101 01010101 00110011 SYSTEM_HACK_V.3.7.1"
-  matrix_speed_ms: 60
-  scan_lines_count: 3
-  scan_speed_ms: 5
-  ascii_glitch: true
-  boot_delay_ms: 100
-  typewriter_speed_ms: 10
-  show_scan_lines: true
-
-messages:
-  access_granted: ">> ACCESS GRANTED <<"
-  press_to_exit: "[Press 'q' to disconnect]"
-  goodbye: "Connection terminated."
-  hack_message: "HACK THE PLANET!"
-```
-
-## Markdown rendering
-
-The renderer supports a lightweight subset of markdown:
-
-- headings
-- bold and italic text
-- unordered and ordered lists
-- inline code
-- fenced code blocks with simple ANSI color themes for common languages
-- links rendered as underlined text
-
-## Security model
-
-No authentication—this is by design. Anyone who can reach the port can see your profile. That's the point. It's a kiosk, not a server for sensitive stuff.
-
-Guardrails in place:
-
-- Persistent host key on disk
-- Handshake and absolute post-authentication connection timeouts, including clients that never open a session
-- Connection cap
-- Rejects unsupported channels and session request types
-- Log sanitization for attacker-controlled SSH metadata
-
-If you expose this publicly, treat it as anonymous read-only infrastructure and put it behind normal network controls for an internet-facing service.
-
-### Container hardening
-
-The image runs as UID 100 / GID 101 with a static binary in a scratch image, without a shell or package manager. The bundled Compose configuration also uses a read-only root filesystem, drops all Linux capabilities, enables `no-new-privileges`, and limits memory, CPU, process count, file descriptors and log growth.
-
-The `/data` volume remains writable so a fresh deployment can generate its persistent SSH host key. Preserve this volume when updating the image. Once the key exists, you can optionally mount `/data` read-only; do not do this before initial key generation. Custom host-mounted key files must be readable by UID 100 / GID 101.
-
-`server.session_timeout_seconds` bounds the whole authenticated connection, starting immediately after authentication. Clients that never request a session channel are disconnected too, releasing their connection slot.
-
-These container settings do not restrict outbound network access. For public deployments, configure host firewall rules to block new outbound connections and access to the host, LAN and cloud metadata service from the container. Keep established response traffic working and allow inbound traffic only to the CV port. Firewall rules must match your deployment's bridge/network and survive Docker and host restarts.
+Build locally with `docker build -t ssh-cv .`, or use [compose.yaml](compose.yaml) with `docker compose up --build`.
